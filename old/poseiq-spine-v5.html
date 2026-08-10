@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07090c">
+<meta name="description" content="PoseIQ Spine - a camera-based spine motion profile in under 60 seconds.">
+<title>PoseIQ Spine</title>
+<link rel="icon" href="data:,">
+<style>
+:root{
+  --bg:#07090c;
+  --glass:rgba(12,15,20,.58);
+  --glass-strong:rgba(12,15,20,.82);
+  --line:rgba(255,255,255,.14);
+  --line-soft:rgba(255,255,255,.09);
+  --white:#fff;
+  --muted:rgba(255,255,255,.68);
+  --muted2:rgba(255,255,255,.48);
+  --good:#7cf2b8;
+  --warn:#ffd37a;
+  --bad:#ff8585;
+  --accent:#8d84ff;
+  --ink:#101114;
+  --sheet:#f7f8fb;
+  --shadow:0 18px 70px rgba(0,0,0,.36);
+}
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0;background:var(--bg);overflow:hidden}
+body{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--white);-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid rgba(141,132,255,.65);outline-offset:3px}
+[hidden]{display:none!important}
+.app{position:fixed;inset:0;background:#07090c;overflow:hidden}
+.stage{position:absolute;inset:0;background:
+  radial-gradient(circle at 50% 38%,rgba(141,132,255,.12),transparent 34%),
+  linear-gradient(180deg,#11151d 0%,#07090c 68%)}
+video,canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+video.mirror,canvas.mirror{transform:scaleX(-1)}
+#video{opacity:0;transition:opacity .35s ease}
+.app[data-running="true"] #video{opacity:1}
+#overlay{pointer-events:none}
+.vignette{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.38),transparent 22%,transparent 58%,rgba(0,0,0,.66));z-index:2}
+
+.glass{background:var(--glass);border:1px solid var(--line);box-shadow:0 8px 30px rgba(0,0,0,.14);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.topbar{position:absolute;z-index:20;top:max(14px,env(safe-area-inset-top));left:14px;right:14px;display:flex;align-items:center;justify-content:space-between;pointer-events:none}
+.brand{pointer-events:auto;display:flex;align-items:center;gap:9px;border:0;color:white;border-radius:15px;padding:8px 10px;background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(18px)}
+.brand-mark{width:28px;height:28px;border-radius:9px;background:white;color:#0b0d11;display:grid;place-items:center;font-weight:950;font-size:15px;letter-spacing:-.05em}
+.brand-copy{display:flex;flex-direction:column;line-height:1.02;text-align:left}.brand-copy strong{font-size:13px;letter-spacing:-.02em}.brand-copy small{font-size:10px;color:var(--muted);font-weight:700;margin-top:3px}
+.top-actions{pointer-events:auto;display:flex;gap:8px}
+.icon-btn{width:44px;height:44px;border-radius:14px;border:1px solid var(--line);color:white;background:var(--glass);display:grid;place-items:center;backdrop-filter:blur(18px);transition:.18s ease}
+.icon-btn:hover{background:rgba(255,255,255,.12)}
+.icon-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+.welcome{position:absolute;z-index:10;inset:0;display:grid;place-items:center;padding:24px;transition:opacity .28s ease,visibility .28s ease}
+.welcome.hide{opacity:0;visibility:hidden;pointer-events:none}
+.welcome-card{text-align:center;width:min(720px,92vw);padding:28px 22px}
+.kicker{font-size:12px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.56);margin-bottom:13px}
+.welcome h1{font-size:clamp(46px,7vw,82px);line-height:.92;letter-spacing:-.065em;margin:0 auto 18px;max-width:760px}
+.welcome p{font-size:clamp(17px,2.2vw,21px);line-height:1.45;color:var(--muted);margin:0 auto 26px;max-width:560px}
+.start-btn{border:0;border-radius:17px;padding:15px 24px;background:white;color:#111;font-weight:900;font-size:17px;min-width:154px;box-shadow:0 12px 36px rgba(0,0,0,.24);transition:transform .18s ease,background .18s ease}
+.start-btn:hover{transform:translateY(-1px);background:#f3f3f4}
+.micro{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:17px;color:var(--muted2);font-size:12px;font-weight:700}
+.micro button{border:0;background:none;color:inherit;padding:3px 0}
+.micro button:hover{color:white}
+
+.status-pill{position:absolute;z-index:18;top:max(76px,calc(env(safe-area-inset-top) + 62px));left:14px;display:flex;align-items:center;gap:8px;border-radius:999px;padding:9px 12px;font-size:12px;font-weight:800;color:white;transition:.2s ease}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 3px rgba(255,211,122,.12)}
+.status-dot.good{background:var(--good);box-shadow:0 0 0 3px rgba(124,242,184,.12)}
+.status-dot.bad{background:var(--bad);box-shadow:0 0 0 3px rgba(255,133,133,.12)}
+
+.frame-guide{position:absolute;z-index:3;left:50%;top:47%;width:min(54vw,430px);height:min(58vh,500px);transform:translate(-50%,-50%);border:1.5px dashed rgba(255,255,255,.26);border-radius:36px;pointer-events:none;opacity:0;transition:opacity .25s ease}
+.app[data-running="true"] .frame-guide{opacity:1}
+.frame-guide.good{border-color:rgba(124,242,184,.45)}
+
+.hud{position:absolute;z-index:18;left:50%;bottom:max(18px,calc(env(safe-area-inset-bottom) + 12px));transform:translateX(-50%);width:min(720px,calc(100vw - 28px));padding:18px 18px 15px;border-radius:24px;transition:opacity .22s ease,transform .22s ease}
+.hud.hidden{opacity:0;transform:translate(-50%,18px);pointer-events:none}
+.hud-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+.step{font-size:11px;font-weight:850;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:5px}
+.hud h2{margin:0;font-size:clamp(27px,4vw,38px);letter-spacing:-.045em;line-height:1.02}
+.hud p{margin:8px 0 0;color:var(--muted);font-size:14px;line-height:1.4;max-width:520px}
+.measure{flex:none;text-align:right;min-width:74px}
+.measure strong{display:block;font-size:clamp(30px,4.5vw,46px);letter-spacing:-.055em;line-height:1;font-variant-numeric:tabular-nums}
+.measure small{display:block;font-size:10px;color:var(--muted2);font-weight:800;margin-top:4px;text-transform:uppercase;letter-spacing:.08em}
+.rep{display:inline-flex;align-items:center;justify-content:center;min-width:58px;height:42px;border-radius:13px;background:rgba(255,255,255,.10);font-size:16px;font-weight:900;font-variant-numeric:tabular-nums}
+.progress{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:15px}
+.progress i{height:4px;border-radius:99px;background:rgba(255,255,255,.13);overflow:hidden}.progress i.on{background:rgba(255,255,255,.88)}
+
+.success{position:absolute;z-index:30;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;transition:opacity .2s ease;background:rgba(7,9,12,.08)}
+.success.show{opacity:1}
+.success-bubble{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;background:rgba(124,242,184,.18);border:1px solid rgba(124,242,184,.38);backdrop-filter:blur(18px);box-shadow:0 0 70px rgba(124,242,184,.18)}
+.success-bubble svg{width:38px;height:38px;fill:none;stroke:#b9ffd9;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+.modal-backdrop{position:absolute;z-index:40;inset:0;background:rgba(5,7,10,.54);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:grid;place-items:center;padding:18px;opacity:0;visibility:hidden;transition:.22s ease}
+.modal-backdrop.show{opacity:1;visibility:visible}
+.result-card{width:min(720px,100%);max-height:min(92vh,820px);overflow:auto;background:var(--sheet);color:var(--ink);border-radius:30px;padding:26px;box-shadow:var(--shadow);transform:translateY(16px) scale(.985);transition:.22s ease}
+.modal-backdrop.show .result-card{transform:none}
+.result-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.result-brand{display:flex;align-items:center;gap:9px}.result-brand .brand-mark{background:#111;color:white}.result-brand strong{font-size:14px}.result-brand small{display:block;color:#777;font-size:11px;margin-top:2px}
+.result-date{color:#80848d;font-size:12px;font-weight:700;text-align:right}
+.result-eyebrow{font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#736bff;margin-top:30px}
+.result-card h2{font-size:clamp(34px,6vw,52px);letter-spacing:-.055em;line-height:.96;margin:7px 0 9px}
+.result-card .sub{color:#686d76;font-size:14px;line-height:1.5;margin:0 0 22px}
+.result-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.metric{padding:16px;border-radius:18px;background:white;border:1px solid #e8e9ee;min-height:104px}.metric small{display:block;color:#777d86;font-size:11px;font-weight:800;margin-bottom:9px}.metric strong{font-size:30px;letter-spacing:-.045em;font-variant-numeric:tabular-nums}.metric span{font-size:12px;color:#777d86}
+.result-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 2px 3px;color:#737982;font-size:12px;line-height:1.45}
+.confidence{display:flex;align-items:center;gap:8px;white-space:nowrap}.confidence i{width:8px;height:8px;border-radius:50%;background:#18a875}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}.action{border-radius:14px;padding:12px 15px;border:1px solid #e0e2e8;background:white;color:#17191d;font-weight:850}.action.primary{background:#111;color:white;border-color:#111}.action:hover{filter:brightness(.98)}
+
+.sheet-backdrop{position:absolute;z-index:50;inset:0;background:rgba(5,7,10,.4);opacity:0;visibility:hidden;transition:.2s ease}
+.sheet-backdrop.show{opacity:1;visibility:visible}
+.sheet{position:absolute;z-index:51;top:max(70px,calc(env(safe-area-inset-top) + 60px));right:14px;width:min(360px,calc(100vw - 28px));background:#f7f8fb;color:#17191d;border-radius:24px;padding:18px;box-shadow:var(--shadow);opacity:0;visibility:hidden;transform:translateY(-8px);transition:.2s ease}
+.sheet.show{opacity:1;visibility:visible;transform:none}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.sheet-head strong{font-size:17px}.sheet-close{width:34px;height:34px;border-radius:10px;border:1px solid #e3e5ea;background:white;font-weight:900}
+.sheet-section{padding:13px 0;border-top:1px solid #e4e6eb}.sheet-section:first-of-type{border-top:0}.sheet-section h3{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:#858a93;margin:0 0 7px}.sheet-section p{font-size:13px;line-height:1.5;color:#555b65;margin:0}.sheet-actions{display:grid;gap:8px}.sheet-actions button{border:1px solid #e1e3e8;background:white;border-radius:13px;padding:11px 12px;text-align:left;font-weight:800;color:#222}
+
+.loading{position:absolute;z-index:35;inset:0;display:grid;place-items:center;background:rgba(7,9,12,.48);backdrop-filter:blur(10px);opacity:0;visibility:hidden;transition:.2s ease}.loading.show{opacity:1;visibility:visible}.loading-card{display:flex;align-items:center;gap:12px;padding:14px 17px;border-radius:18px}.spinner{width:19px;height:19px;border:2px solid rgba(255,255,255,.25);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:absolute;z-index:70;left:50%;bottom:max(22px,calc(env(safe-area-inset-bottom) + 16px));transform:translate(-50%,18px);opacity:0;transition:.2s ease;border-radius:999px;padding:10px 14px;font-size:12px;font-weight:800;pointer-events:none}.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media(max-width:700px){
+  .topbar{top:max(10px,env(safe-area-inset-top));left:10px;right:10px}
+  .brand-copy{display:none}
+  .brand{padding:7px}
+  .icon-btn{width:42px;height:42px}
+  .status-pill{top:max(66px,calc(env(safe-area-inset-top) + 56px));left:10px}
+  .frame-guide{width:70vw;height:54vh;border-radius:28px}
+  .hud{width:calc(100vw - 20px);bottom:max(10px,env(safe-area-inset-bottom));padding:15px;border-radius:20px}
+  .hud-head{gap:12px}.hud p{font-size:13px}.measure strong{font-size:30px}
+  .result-card{padding:20px;border-radius:24px}.result-grid{grid-template-columns:1fr 1fr}.metric{min-height:92px}.metric strong{font-size:27px}.result-bottom{align-items:flex-start;flex-direction:column}
+}
+@media(max-width:420px){
+  .welcome h1{font-size:46px}.welcome p{font-size:16px}.micro{gap:10px}
+  .hud h2{font-size:25px}.hud p{padding-right:4px}.measure{min-width:58px}.rep{height:38px;min-width:52px}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main class="app" id="app" data-running="false">
+  <section class="stage" aria-label="PoseIQ Spine camera workspace">
+    <video id="video" class="mirror" playsinline muted></video>
+    <canvas id="overlay" class="mirror"></canvas>
+    <div class="vignette"></div>
+    <div class="frame-guide" id="frameGuide" aria-hidden="true"></div>
+  </section>
+
+  <header class="topbar">
+    <button class="brand" id="brandBtn" aria-label="PoseIQ Spine home">
+      <span class="brand-mark">P</span>
+      <span class="brand-copy"><strong>PoseIQ</strong><small>Spine</small></span>
+    </button>
+    <div class="top-actions">
+      <button class="icon-btn" id="flipBtn" title="Switch camera" aria-label="Switch camera" hidden>
+        <svg viewBox="0 0 24 24"><path d="M7 7h8a4 4 0 0 1 4 4v1"/><path d="m16 4 3 3-3 3"/><path d="M17 17H9a4 4 0 0 1-4-4v-1"/><path d="m8 20-3-3 3-3"/></svg>
+      </button>
+      <button class="icon-btn" id="settingsBtn" title="Info and settings" aria-label="Info and settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3V9.6h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <section class="welcome" id="welcome">
+    <div class="welcome-card">
+      <div class="kicker">Spine Motion Profile</div>
+      <h1>Your spine movement profile in under 60 seconds.</h1>
+      <p>Camera-based trunk movement measurement. No markers. No wearables.</p>
+      <button class="start-btn" id="startBtn">Start</button>
+      <div class="micro">
+        <button id="howBtn">How it works</button>
+        <span>•</span>
+        <button id="scienceBtn">Science</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="status-pill glass" id="statusPill" hidden>
+    <span class="status-dot" id="dot"></span><span id="status">Starting…</span>
+  </div>
+
+  <section class="hud glass hidden" id="hud" aria-live="polite">
+    <div class="hud-head">
+      <div>
+        <div class="step" id="stepK">Step 1 of 4</div>
+        <h2 id="title">Turn side-on</h2>
+        <p id="instruction">Keep your shoulders and hips visible.</p>
+      </div>
+      <div class="measure" id="measureBox" hidden>
+        <strong><span id="angle">0</span>°</strong>
+        <small>trunk angle</small>
+      </div>
+      <div class="rep" id="repBox" hidden><span id="repCount">0/3</span></div>
+    </div>
+    <div class="progress"><i id="p1"></i><i id="p2"></i><i id="p3"></i><i id="p4"></i></div>
+  </section>
+
+  <div class="success" id="success" aria-hidden="true"><div class="success-bubble"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></div></div>
+
+  <div class="modal-backdrop" id="resultModal" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+    <article class="result-card" id="resultCard">
+      <div class="result-top">
+        <div class="result-brand"><span class="brand-mark">P</span><div><strong>PoseIQ</strong><small>Spine</small></div></div>
+        <div class="result-date" id="resultDate"></div>
+      </div>
+      <div class="result-eyebrow">Your result</div>
+      <h2 id="resultTitle">Spine Motion Profile</h2>
+      <p class="sub">A repeatable snapshot of observable trunk movement.</p>
+      <div class="result-grid">
+        <div class="metric"><small>Flexion</small><strong><span id="rFlex">—</span>°</strong></div>
+        <div class="metric"><small>Extension</small><strong><span id="rExt">—</span>°</strong></div>
+        <div class="metric"><small>Side bend left</small><strong><span id="rLeft">—</span>°</strong></div>
+        <div class="metric"><small>Side bend right</small><strong><span id="rRight">—</span>°</strong></div>
+        <div class="metric"><small>Side difference</small><strong><span id="rAsym">—</span>°</strong></div>
+        <div class="metric"><small>Tracking</small><strong><span id="rQuality">—</span></strong><span>confidence</span></div>
+      </div>
+      <div class="result-bottom">
+        <div>Observable camera-based trunk movement. Not diagnosis or vertebral measurement.</div>
+        <div class="confidence"><i></i><span id="qualityLabel">Tracking quality</span></div>
+      </div>
+      <div class="actions">
+        <button class="action primary" id="saveBtn">Save PNG</button>
+        <button class="action" id="shareBtn">Share</button>
+        <button class="action" id="copyBtn">Copy result</button>
+        <button class="action" id="againBtn">Test again</button>
+      </div>
+    </article>
+  </div>
+
+  <div class="sheet-backdrop" id="sheetBackdrop"></div>
+  <aside class="sheet" id="sheet" aria-label="PoseIQ Spine information">
+    <div class="sheet-head"><strong>PoseIQ Spine</strong><button class="sheet-close" id="sheetClose" aria-label="Close">×</button></div>
+    <div class="sheet-section" id="sheetContent"></div>
+    <div class="sheet-section sheet-actions" id="sessionActions" hidden>
+      <button id="restartBtn">Restart test</button>
+      <button id="stopBtn">Stop camera</button>
+    </div>
+  </aside>
+
+  <div class="loading" id="loading"><div class="loading-card glass"><div class="spinner"></div><strong id="loadingText">Preparing camera…</strong></div></div>
+  <div class="toast glass" id="toast"></div>
+</main>
+
+<script type="module">
+const $=s=>document.querySelector(s);
+const app=$('#app'),video=$('#video'),canvas=$('#overlay'),ctx=canvas.getContext('2d');
+let landmarker=null,stream=null,facing='user',raf=0,lastVideoTime=-1;
+let state='idle',stableSince=0,neutralSamples=[];
+let baselineSide=null,baselineFront=null,facingSign=1,leftSign=1;
+let smooth=0,sideReps=0,leftReps=0,rightReps=0,phase='neutral';
+let flexionSign=0,bendPeak=0;
+let sideSamples=[],frontSamples=[],poseSeen=0,latest=null,qualitySamples=[];
+
+const P={nose:0,ls:11,rs:12,lh:23,rh:24};
+const mid=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2,z:((a.z||0)+(b.z||0))/2});
+const deg=r=>r*180/Math.PI;
+function median(a){const b=[...a].sort((x,y)=>x-y);if(!b.length)return 0;const m=Math.floor(b.length/2);return b.length%2?b[m]:(b[m-1]+b[m])/2}
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),1500)}
+function setLoading(on,text='Preparing camera…'){$('#loadingText').textContent=text;$('#loading').classList.toggle('show',on)}
+function successPulse(){const el=$('#success');el.classList.add('show');setTimeout(()=>el.classList.remove('show'),650)}
+function fmtDate(d=new Date()){return new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(d)}
+
+function setState(s){
+  state=s;stableSince=0;neutralSamples=[];smooth=0;phase='neutral';bendPeak=0;
+  const map={
+    sidePosition:['Step 1 of 4','Turn side-on','Keep your shoulders and hips visible.',1,false,false],
+    sideNeutral:['Step 1 of 4','Hold still','Stand naturally. Neutral will lock automatically.',1,false,false],
+    sideMove:['Step 2 of 4','Bend forward × 3','Move comfortably and return upright each time.',2,true,true],
+    frontPosition:['Step 3 of 4','Now face the camera','Keep your shoulders and hips visible.',3,false,false],
+    frontNeutral:['Step 3 of 4','Hold still','Stand naturally. Neutral will lock automatically.',3,false,false],
+    frontMove:['Step 4 of 4','Bend left and right','Three comfortable bends each way.',4,true,true],
+    done:['Done','Profile ready','Your movement profile is ready.',4,false,false]
+  };
+  const v=map[s]||map.sidePosition;
+  $('#stepK').textContent=v[0];$('#title').textContent=v[1];$('#instruction').textContent=v[2];
+  $('#measureBox').hidden=!v[4];$('#repBox').hidden=!v[5];
+  for(let i=1;i<=4;i++)$('#p'+i).classList.toggle('on',i<=v[3]);
+  updateRepDisplay();
+}
+function updateRepDisplay(){
+  if(state==='sideMove')$('#repCount').textContent=`${sideReps}/3`;
+  else if(state==='frontMove')$('#repCount').textContent=`${leftReps+rightReps}/6`;
+}
+function setStatus(text,kind='warn'){
+  $('#status').textContent=text;
+  $('#dot').className='status-dot'+(kind==='good'?' good':kind==='bad'?' bad':'');
+}
+
+function torsoQuality(lm){
+  const ids=[P.ls,P.rs,P.lh,P.rh];
+  const vis=ids.reduce((a,i)=>a+(lm[i].visibility??1),0)/ids.length;
+  const inside=ids.every(i=>lm[i].x>.04&&lm[i].x<.96&&lm[i].y>.05&&lm[i].y<.96);
+  const sh=mid(lm[P.ls],lm[P.rs]),hp=mid(lm[P.lh],lm[P.rh]);
+  const torso=Math.hypot(sh.x-hp.x,sh.y-hp.y),largeEnough=torso>.12;
+  return{vis,inside,largeEnough,good:vis>.62&&inside&&largeEnough,sh,hp,torso};
+}
+function rawTrunk(lm){const sh=mid(lm[P.ls],lm[P.rs]),hp=mid(lm[P.lh],lm[P.rh]);return deg(Math.atan2(sh.x-hp.x,hp.y-sh.y))}
+function frontRaw(lm){return rawTrunk(lm)}
+
+function draw(lm){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const pts=lm.map(p=>({x:p.x*canvas.width,y:p.y*canvas.height}));
+  ctx.lineWidth=Math.max(2.5,canvas.width/420);ctx.strokeStyle='rgba(255,255,255,.86)';ctx.fillStyle='rgba(141,132,255,.98)';
+  [[11,12],[11,23],[12,24],[23,24]].forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(pts[a].x,pts[a].y);ctx.lineTo(pts[b].x,pts[b].y);ctx.stroke()});
+  [11,12,23,24].forEach(i=>{ctx.beginPath();ctx.arc(pts[i].x,pts[i].y,Math.max(4,canvas.width/260),0,Math.PI*2);ctx.fill()});
+  const sh=mid(lm[11],lm[12]),hp=mid(lm[23],lm[24]);
+  ctx.strokeStyle='rgba(124,242,184,.96)';ctx.lineWidth=Math.max(3.5,canvas.width/320);ctx.beginPath();ctx.moveTo(sh.x*canvas.width,sh.y*canvas.height);ctx.lineTo(hp.x*canvas.width,hp.y*canvas.height);ctx.stroke();
+}
+function setQuality(q){
+  $('#frameGuide').classList.toggle('good',q.good);
+  if(q.good)setStatus('Ready','good');else if(!q.inside)setStatus('Move into frame');else if(!q.largeEnough)setStatus('Move a little closer');else setStatus('Hold camera steady');
+}
+
+function neutralReady(raw,lm,key){
+  neutralSamples.push(raw);if(neutralSamples.length>40)neutralSamples.shift();
+  const spread=neutralSamples.length>10?Math.max(...neutralSamples)-Math.min(...neutralSamples):99;
+  const stable=neutralSamples.length>=18&&spread<3.5;
+  if(stable){
+    if(!stableSince)stableSince=performance.now();
+    setStatus('Hold still · locking neutral','good');
+    if(performance.now()-stableSince>900){
+      const base=median(neutralSamples.slice(-25));
+      if(key==='side'){
+        baselineSide=base;const hp=mid(lm[P.lh],lm[P.rh]);facingSign=Math.sign((lm[P.nose]?.x??hp.x+.01)-hp.x)||1;
+      }else{baselineFront=base;leftSign=Math.sign(lm[P.ls].x-lm[P.rs].x)||1}
+      successPulse();toast('Neutral locked');return true;
+    }
+  }else{stableSince=0;setStatus('Stand naturally · hold still')}
+  return false;
+}
+
+function updateSide(a,ts,q){
+  smooth=.76*smooth+.24*a;const val=smooth;
+  $('#angle').textContent=Math.round(Math.abs(val));sideSamples.push({t:ts,a:val,vis:q.vis});qualitySamples.push(q.vis);
+
+  // Side-facing direction can flip the sign of the image-space trunk angle.
+  // Learn the user's forward-bend direction from the first clear bend instead
+  // of guessing it from nose position, then use hysteresis to count a rep only
+  // after the user returns upright.
+  if(phase==='neutral'&&Math.abs(val)>15){
+    phase='bend';
+    bendPeak=val;
+  }else if(phase==='bend'){
+    if(Math.abs(val)>Math.abs(bendPeak))bendPeak=val;
+    if(Math.abs(val)<7){
+      const sign=Math.sign(bendPeak)||1;
+      if(!flexionSign)flexionSign=sign;
+      if(sign===flexionSign){
+        sideReps=Math.min(3,sideReps+1);updateRepDisplay();successPulse();toast(`Forward bend ${sideReps} of 3`);
+      }
+      bendPeak=0;
+      phase='neutral';
+    }
+  }
+
+  if(sideReps>=3){setState('frontPosition');successPulse();toast('Great · now face the camera')}
+}
+function updateFront(a,ts,q){
+  smooth=.76*smooth+.24*a;const val=smooth;
+  $('#angle').textContent=Math.round(Math.abs(val));frontSamples.push({t:ts,a:val,vis:q.vis});qualitySamples.push(q.vis);
+  const newPhase=Math.abs(val)<7?'neutral':val>11?'left':val<-11?'right':phase;
+  if(phase==='left'&&newPhase==='neutral'&&leftReps<3){leftReps++;updateRepDisplay();successPulse();toast(`Left ${leftReps} of 3`)}
+  if(phase==='right'&&newPhase==='neutral'&&rightReps<3){rightReps++;updateRepDisplay();successPulse();toast(`Right ${rightReps} of 3`)}
+  phase=newPhase;
+  if(leftReps>=3&&rightReps>=3)finish();
+}
+
+function handle(lm,ts){
+  poseSeen=performance.now();draw(lm);const q=torsoQuality(lm);setQuality(q);if(!q.good)return;
+  const raw=rawTrunk(lm);
+  if(state==='sidePosition'){setState('sideNeutral');return}
+  if(state==='sideNeutral'){if(neutralReady(raw,lm,'side'))setState('sideMove');return}
+  if(state==='sideMove'){updateSide((raw-baselineSide)*facingSign,ts,q);return}
+  if(state==='frontPosition'){setState('frontNeutral');return}
+  if(state==='frontNeutral'){if(neutralReady(frontRaw(lm),lm,'front'))setState('frontMove');return}
+  if(state==='frontMove'){updateFront((frontRaw(lm)-baselineFront)*leftSign,ts,q);return}
+}
+function stats(arr){if(arr.length<10)return null;const a=arr.map(x=>x.a);return{max:Math.max(...a),min:Math.min(...a)}}
+function finish(){
+  if(state==='done')return;setState('done');
+  const s=stats(sideSamples),f=stats(frontSamples);
+  const sideDir=flexionSign||((s&&Math.abs(s.max)>=Math.abs(s.min))?1:-1);
+  const flex=s?(sideDir>0?Math.max(0,s.max):Math.max(0,-s.min)):0;
+  const ext=s?(sideDir>0?Math.max(0,-s.min):Math.max(0,s.max)):0;
+  const left=f?Math.max(0,f.max):0,right=f?Math.max(0,-f.min):0,asym=Math.abs(left-right);
+  const q=qualitySamples.length?qualitySamples.reduce((a,b)=>a+b,0)/qualitySamples.length:0;
+  latest={flexion:Math.round(flex),extension:Math.round(ext),left:Math.round(left),right:Math.round(right),asym:Math.round(asym),quality:Math.round(q*100),date:new Date()};
+  $('#rFlex').textContent=latest.flexion;$('#rExt').textContent=latest.extension;$('#rLeft').textContent=latest.left;$('#rRight').textContent=latest.right;$('#rAsym').textContent=latest.asym;
+  $('#rQuality').textContent=latest.quality>=85?'High':latest.quality>=70?'Good':'Fair';
+  $('#qualityLabel').textContent=`${latest.quality}% landmark visibility`;$('#resultDate').textContent=fmtDate(latest.date);
+  successPulse();$('#hud').classList.add('hidden');setTimeout(()=>$('#resultModal').classList.add('show'),420);
+}
+
+async function loadPose(){
+  setStatus('Loading pose model…');
+  const vision=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs');
+  const fileset=await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm');
+  const options={baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task',delegate:'GPU'},runningMode:'VIDEO',numPoses:1,minPoseDetectionConfidence:.5,minPosePresenceConfidence:.5,minTrackingConfidence:.5,outputSegmentationMasks:false};
+  try{landmarker=await vision.PoseLandmarker.createFromOptions(fileset,options)}catch(e){console.warn('GPU init failed, using CPU',e);options.baseOptions.delegate='CPU';landmarker=await vision.PoseLandmarker.createFromOptions(fileset,options)}
+}
+async function startCamera(){
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1280},height:{ideal:720}},audio:false});
+  video.srcObject=stream;await video.play();canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+  const mirror=facing==='user';video.classList.toggle('mirror',mirror);canvas.classList.toggle('mirror',mirror);
+}
+function loop(){
+  if(video.readyState>=2&&landmarker&&video.currentTime!==lastVideoTime){
+    lastVideoTime=video.currentTime;
+    try{
+      const now=performance.now(),r=landmarker.detectForVideo(video,now);
+      if(r.landmarks?.[0])handle(r.landmarks[0],now);
+      else if(now-poseSeen>500){ctx.clearRect(0,0,canvas.width,canvas.height);setStatus('Show shoulders and hips')}
+    }catch(e){console.error(e);setStatus('Pose inference error','bad')}
+  }
+  raf=requestAnimationFrame(loop);
+}
+function resetTest(){
+  sideSamples=[];frontSamples=[];qualitySamples=[];baselineSide=null;baselineFront=null;sideReps=leftReps=rightReps=0;flexionSign=0;bendPeak=0;latest=null;
+  $('#angle').textContent='0';$('#resultModal').classList.remove('show');$('#hud').classList.remove('hidden');setState('sidePosition');setStatus('Find your position');
+}
+async function begin(){
+  $('#welcome').classList.add('hide');$('#statusPill').hidden=false;$('#flipBtn').hidden=false;$('#hud').classList.remove('hidden');$('#sessionActions').hidden=false;app.dataset.running='true';
+  setLoading(true,'Preparing camera…');
+  try{if(!landmarker){setLoading(true,'Loading movement tracking…');await loadPose()}await startCamera();resetTest();cancelAnimationFrame(raf);loop();setLoading(false)}
+  catch(e){console.error(e);setLoading(false);setStatus('Camera could not start','bad');toast('Allow camera access and use HTTPS');$('#welcome').classList.remove('hide');app.dataset.running='false'}
+}
+function stopCamera(){
+  if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;cancelAnimationFrame(raf);ctx.clearRect(0,0,canvas.width,canvas.height);app.dataset.running='false';
+  $('#statusPill').hidden=true;$('#flipBtn').hidden=true;$('#hud').classList.add('hidden');$('#welcome').classList.remove('hide');$('#resultModal').classList.remove('show');$('#sessionActions').hidden=true;state='idle';
+}
+
+function resultText(){if(!latest)return'';return `PoseIQ Spine Motion Profile\nFlexion: ${latest.flexion}°\nExtension: ${latest.extension}°\nSide bend left: ${latest.left}°\nSide bend right: ${latest.right}°\nSide difference: ${latest.asym}°\nTracking confidence: ${latest.quality}%\n${fmtDate(latest.date)}\n\nCamera-based observable trunk movement. Not a diagnosis.`}
+async function savePNG(){
+  if(!latest)return;const c=document.createElement('canvas');c.width=1200;c.height=760;const x=c.getContext('2d');
+  x.fillStyle='#f7f8fb';x.fillRect(0,0,c.width,c.height);x.fillStyle='#111';x.font='800 34px Inter,Arial';x.fillText('PoseIQ Spine',64,76);x.fillStyle='#7169ff';x.font='800 22px Inter,Arial';x.fillText('SPINE MOTION PROFILE',64,135);x.fillStyle='#111';x.font='800 58px Inter,Arial';x.fillText('Your Spine Motion Profile',64,210);x.fillStyle='#626873';x.font='24px Inter,Arial';x.fillText('A repeatable snapshot of observable trunk movement.',64,253);
+  const items=[['Flexion',`${latest.flexion}°`],['Extension',`${latest.extension}°`],['Side bend left',`${latest.left}°`],['Side bend right',`${latest.right}°`],['Side difference',`${latest.asym}°`],['Tracking',`${latest.quality}%`]];
+  items.forEach((it,i)=>{const col=i%3,row=Math.floor(i/3),bx=64+col*360,by=310+row*155;x.fillStyle='#fff';x.beginPath();x.roundRect(bx,by,330,125,20);x.fill();x.strokeStyle='#e5e7ec';x.stroke();x.fillStyle='#737983';x.font='700 18px Inter,Arial';x.fillText(it[0],bx+22,by+35);x.fillStyle='#111';x.font='800 40px Inter,Arial';x.fillText(it[1],bx+22,by+86)});
+  x.fillStyle='#747a83';x.font='18px Inter,Arial';x.fillText(fmtDate(latest.date),64,690);x.fillText('Observable trunk movement · Not diagnosis or vertebral measurement',64,724);
+  c.toBlob(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`poseiq-spine-${latest.date.toISOString().slice(0,10)}.png`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)},'image/png');
+}
+async function shareResult(){
+  if(!latest)return;const text=resultText();
+  try{if(navigator.share){await navigator.share({title:'PoseIQ Spine Motion Profile',text});}else{await navigator.clipboard.writeText(text);toast('Result copied')}}catch(e){if(e?.name!=='AbortError')toast('Sharing unavailable')}
+}
+
+function openSheet(mode='info'){
+  const c=$('#sheetContent');
+  if(mode==='how')c.innerHTML='<h3>How it works</h3><p>Turn side-on, hold still, bend forward three times, then face the camera and bend left and right three times. PoseIQ automatically locks neutral and creates your movement profile.</p>';
+  else if(mode==='science')c.innerHTML='<h3>Science</h3><p>PoseIQ Spine measures observable trunk motion from camera pose landmarks. It does not measure individual vertebral angles, discs, facets, internal spinal structures or diagnose a condition.</p>';
+  else c.innerHTML='<h3>About</h3><p>A fast camera-based Spine Motion Profile designed for simple repeatable movement checks.</p>';
+  $('#sheetBackdrop').classList.add('show');$('#sheet').classList.add('show');
+}
+function closeSheet(){$('#sheetBackdrop').classList.remove('show');$('#sheet').classList.remove('show')}
+
+$('#startBtn').onclick=begin;
+$('#flipBtn').onclick=async()=>{facing=facing==='user'?'environment':'user';try{setLoading(true,'Switching camera…');await startCamera();resetTest();setLoading(false)}catch(e){console.error(e);setLoading(false);toast('Could not switch camera')}};
+$('#restartBtn').onclick=()=>{closeSheet();resetTest()};
+$('#stopBtn').onclick=()=>{closeSheet();stopCamera()};
+$('#againBtn').onclick=()=>{$('#resultModal').classList.remove('show');resetTest()};
+$('#copyBtn').onclick=async()=>{try{await navigator.clipboard.writeText(resultText());toast('Result copied')}catch(e){toast('Copy unavailable')}};
+$('#saveBtn').onclick=savePNG;$('#shareBtn').onclick=shareResult;
+$('#settingsBtn').onclick=()=>openSheet('info');$('#howBtn').onclick=()=>openSheet('how');$('#scienceBtn').onclick=()=>openSheet('science');
+$('#sheetClose').onclick=closeSheet;$('#sheetBackdrop').onclick=closeSheet;
+$('#brandBtn').onclick=()=>{if(app.dataset.running==='true')openSheet('info')};
+setState('sidePosition');
+</script>
+</body>
+</html>

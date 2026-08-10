@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6f7fb">
+<link rel="icon" href="data:,">
+<title>PoseIQ Spine | Spine Motion Profile</title>
+<style>
+:root{
+  --bg:#f6f7fb;--ink:#101114;--muted:#6f747d;--line:#e7e9ef;--card:#fff;
+  --violet:#665cff;--good:#18a875;--warn:#e69a23;--bad:#d95151;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+button{font:inherit;cursor:pointer}
+.app{max-width:1180px;margin:auto;padding:18px 16px 56px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.brand{font-weight:850;font-size:20px;letter-spacing:-.03em}.brand span{font-weight:500;color:#777}
+.badge{font-size:12px;font-weight:750;color:#626771;background:white;border:1px solid var(--line);padding:9px 12px;border-radius:999px}
+.hero{display:grid;grid-template-columns:1fr .8fr;gap:16px}
+.card{background:white;border:1px solid var(--line);border-radius:28px}
+.copy{padding:40px}
+.eyebrow{font-size:12px;font-weight:850;letter-spacing:.1em;text-transform:uppercase;color:var(--violet);margin-bottom:12px}
+h1{font-size:clamp(42px,6vw,70px);line-height:.95;letter-spacing:-.06em;margin:0 0 16px}
+.lede{font-size:18px;line-height:1.5;color:#51565f;max-width:650px}
+.btn{border:0;border-radius:15px;padding:14px 18px;font-weight:850}
+.primary{background:#111;color:white}.secondary{background:white;border:1px solid var(--line);color:#111}
+.trust{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}.trust b{font-size:12px;padding:8px 10px;border-radius:999px;background:#f5f6f9;color:#646972}
+.spineHero{min-height:410px;padding:22px;display:grid;place-items:center;overflow:hidden;position:relative}
+.spineHero:before{content:"";position:absolute;width:330px;height:330px;border-radius:50%;background:radial-gradient(circle,rgba(102,92,255,.16),transparent 68%)}
+#heroSpine{width:240px;height:350px;position:relative;z-index:1}
+.workspace{display:none;margin-top:18px;grid-template-columns:1.4fr .6fr;gap:16px}
+.workspace.show{display:grid}
+.camera{min-height:650px;background:#0c0d10;position:relative;overflow:hidden}
+video,canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+video.mirror,canvas.mirror{transform:scaleX(-1)}
+.overlayShade{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.35),transparent 24%,transparent 70%,rgba(0,0,0,.72));pointer-events:none}
+.status{position:absolute;top:16px;left:16px;z-index:5;display:flex;align-items:center;gap:8px;background:rgba(12,13,16,.7);color:white;padding:10px 12px;border-radius:999px;font-size:13px;font-weight:780;backdrop-filter:blur(10px)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--warn)}.dot.good{background:var(--good)}.dot.bad{background:var(--bad)}
+.flip{position:absolute;right:16px;top:16px;z-index:5;padding:9px 12px;border-radius:12px;border:0;font-weight:800}
+.guide{position:absolute;z-index:2;left:50%;top:46%;width:min(66%,430px);height:48%;transform:translate(-50%,-50%);border:1.5px dashed rgba(255,255,255,.42);border-radius:32px;pointer-events:none}
+.guide:after{content:"Torso in this area";position:absolute;left:50%;bottom:-30px;transform:translateX(-50%);color:rgba(255,255,255,.72);font-size:12px;white-space:nowrap}
+.instruction{position:absolute;z-index:6;left:16px;right:16px;bottom:16px;background:rgba(15,15,17,.74);color:white;border:1px solid rgba(255,255,255,.13);backdrop-filter:blur(16px);border-radius:22px;padding:18px}
+.stepRow{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.stepK{font-size:12px;font-weight:850;color:#c7c9d0;text-transform:uppercase;letter-spacing:.08em}
+.instruction h2{margin:4px 0 6px;font-size:27px;letter-spacing:-.035em}.instruction p{margin:0;color:#d0d1d5;line-height:1.45;font-size:14px}
+.liveAngle{font-size:38px;font-weight:900;letter-spacing:-.04em;white-space:nowrap}
+.progress{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:14px}.progress i{height:5px;border-radius:99px;background:rgba(255,255,255,.18)}.progress i.on{background:white}
+.side{padding:18px;display:flex;flex-direction:column;gap:11px}
+.side h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#7b8089;margin:2px 3px 5px}
+.metric{border:1px solid var(--line);border-radius:19px;padding:16px}.metric small{display:block;color:#777c84;font-weight:700;margin-bottom:4px}.metric strong{font-size:34px;letter-spacing:-.04em}
+.q{display:flex;justify-content:space-between;gap:12px;padding:12px 13px;background:#f6f7f9;border-radius:14px;font-size:13px}.q b{font-size:12px}
+.repGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.rep{padding:12px;border-radius:14px;background:#f6f7f9;font-size:12px}.rep strong{display:block;font-size:22px;margin-top:2px}
+.note{font-size:12px;line-height:1.45;color:#737881;padding:12px}
+.results{display:none;margin-top:18px}.results.show{display:block}
+.resultsHead{padding:28px}.resultsHead h2{font-size:38px;margin:4px 0 8px;letter-spacing:-.045em}.resultsHead p{color:#666b73;line-height:1.5;margin:0}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}.result{padding:20px}.result small{display:block;color:#777;font-weight:750}.result strong{display:block;font-size:34px;margin-top:5px}
+.interp{padding:22px;margin-top:12px;line-height:1.55;color:#50555d}.interp b{color:#111}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.footer{text-align:center;margin-top:28px;color:#7a7e86;font-size:12px;line-height:1.5}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,18px);opacity:0;background:#111;color:white;padding:11px 14px;border-radius:999px;font-weight:750;font-size:13px;transition:.2s;z-index:99}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:880px){.hero,.workspace.show{grid-template-columns:1fr}.spineHero{display:none}.camera{min-height:680px}.metrics{grid-template-columns:1fr 1fr}.copy{padding:30px}}
+@media(max-width:560px){.app{padding:10px}.badge{display:none}.copy{padding:25px 22px}.lede{font-size:16px}.camera{min-height:650px;border-radius:22px}.metrics{grid-template-columns:1fr 1fr}.instruction h2{font-size:22px}.liveAngle{font-size:30px}.guide{width:78%;height:44%}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top"><div class="brand">PoseIQ <span>Spine</span></div><div class="badge">Camera-based trunk motion · about 60 sec</div></div>
+
+  <section class="hero">
+    <div class="card copy">
+      <div class="eyebrow">Spine Motion Profile</div>
+      <h1>Move. Measure. Compare.</h1>
+      <p class="lede">A guided camera check of observable trunk flexion, extension and side-bending. No markers, no wearables, no fake vertebral measurements.</p>
+      <button class="btn primary" id="startBtn">Start movement check</button>
+      <div class="trust"><b>Torso only</b><b>Automatic neutral</b><b>3 reps</b><b>Repeatable baseline</b></div>
+    </div>
+    <div class="card spineHero"><svg id="heroSpine" viewBox="0 0 220 520"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".55" stop-color="#cfd2ff"/><stop offset="1" stop-color="#8d75ff"/></linearGradient></defs><g id="spineGroup"></g></svg></div>
+  </section>
+
+  <section class="workspace" id="workspace">
+    <div class="card camera">
+      <video id="video" class="mirror" playsinline muted></video>
+      <canvas id="overlay" class="mirror"></canvas>
+      <div class="overlayShade"></div>
+      <div class="guide"></div>
+      <div class="status"><span class="dot" id="dot"></span><span id="status">Starting…</span></div>
+      <button class="flip" id="flipBtn">Flip</button>
+
+      <div class="instruction">
+        <div class="stepRow">
+          <div><div class="stepK" id="stepK">Step 1 of 4</div><h2 id="title">Turn side-on</h2></div>
+          <div class="liveAngle"><span id="angle">0</span>°</div>
+        </div>
+        <p id="instruction">Keep your shoulders and hips visible. You do not need to show your feet.</p>
+        <div class="progress"><i id="p1"></i><i id="p2"></i><i id="p3"></i><i id="p4"></i></div>
+      </div>
+    </div>
+
+    <aside class="card side">
+      <h3>Live measurement</h3>
+      <div class="metric"><small>Trunk angle from neutral</small><strong><span id="sideAngle">0</span>°</strong></div>
+      <div class="q"><span>Pose</span><b id="poseQ">Waiting</b></div>
+      <div class="q"><span>Torso visible</span><b id="frameQ">Waiting</b></div>
+      <div class="q"><span>Neutral</span><b id="neutralQ">Not set</b></div>
+      <div class="repGrid">
+        <div class="rep"><span>Forward bends</span><strong><span id="sideReps">0</span>/3</strong></div>
+        <div class="rep"><span>Side bends</span><strong><span id="frontReps">0</span>/6</strong></div>
+      </div>
+      <button class="btn secondary" id="nextBtn" style="display:none">Continue</button>
+      <button class="btn secondary" id="restartBtn">Restart</button>
+      <div class="note">The spine visual mirrors the measured trunk angle. It is illustrative, not a reconstruction of individual vertebrae.</div>
+    </aside>
+  </section>
+
+  <section class="results" id="results">
+    <div class="card resultsHead">
+      <div class="eyebrow">Your result</div>
+      <h2>Spine Motion Profile</h2>
+      <p id="summary"></p>
+    </div>
+    <div class="metrics">
+      <div class="card result"><small>Flexion</small><strong><span id="rFlex">—</span>°</strong></div>
+      <div class="card result"><small>Extension</small><strong><span id="rExt">—</span>°</strong></div>
+      <div class="card result"><small>Side bend L / R</small><strong><span id="rSide">—</span></strong></div>
+      <div class="card result"><small>Side difference</small><strong><span id="rAsym">—</span>°</strong></div>
+    </div>
+    <div class="card interp" id="interp"></div>
+    <div class="actions"><button class="btn primary" id="againBtn">Test again</button><button class="btn secondary" id="copyBtn">Copy summary</button></div>
+  </section>
+
+  <div class="footer">PoseIQ™ · Observable trunk movement, not diagnosis. Results depend on camera position, landmark visibility and how the movement is performed.</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+const $=s=>document.querySelector(s);
+const video=$('#video'), canvas=$('#overlay'), ctx=canvas.getContext('2d');
+let landmarker=null, stream=null, facing='user', raf=0, lastVideoTime=-1;
+let state='idle', stateSince=0, stableSince=0, neutralSamples=[];
+let baselineSide=null, baselineFront=null, facingSign=1, leftSign=1;
+let smooth=0, sideReps=0, leftReps=0, rightReps=0, phase='neutral';
+let sideSamples=[], frontSamples=[], poseSeen=0, latest=null;
+
+const P={nose:0,ls:11,rs:12,lh:23,rh:24};
+const mid=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2,z:((a.z||0)+(b.z||0))/2});
+const deg=r=>r*180/Math.PI, clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function median(a){const b=[...a].sort((x,y)=>x-y); if(!b.length)return 0; const m=Math.floor(b.length/2); return b.length%2?b[m]:(b[m-1]+b[m])/2}
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1500)}
+
+const spineGroup=$('#spineGroup'), spineNodes=[];
+for(let i=0;i<20;i++){const y=42+i*21.5,w=58-i*.9;const g=document.createElementNS('http://www.w3.org/2000/svg','g');const r=document.createElementNS('http://www.w3.org/2000/svg','rect');r.setAttribute('x',110-w/2);r.setAttribute('y',y);r.setAttribute('width',w);r.setAttribute('height',18);r.setAttribute('rx',8);r.setAttribute('fill','url(#g)');r.setAttribute('stroke','rgba(40,42,60,.18)');g.appendChild(r);spineGroup.appendChild(g);spineNodes.push(g)}
+function animateSpine(sag=0,lat=0){spineNodes.forEach((g,i)=>{const p=i/(spineNodes.length-1);g.style.transformOrigin=`110px ${50+i*21.5}px`;g.style.transform=`translateX(${Math.sin(p*Math.PI)*lat*.45}px) rotate(${(p-.1)*sag*.42}deg)`})}
+
+function setState(s){
+  state=s;stateSince=performance.now();stableSince=0;neutralSamples=[];smooth=0;phase='neutral';
+  const map={
+    sidePosition:['Step 1 of 4','Turn side-on','Show your shoulders and hips. Feet are not needed. Hold still when the status turns green.',1],
+    sideNeutral:['Step 1 of 4','Hold still','Neutral is locking automatically. Just stand naturally for about 2 seconds.',1],
+    sideMove:['Step 2 of 4','Bend forward × 3','Three comfortable forward bends. Return upright each time. A gentle backward lean is optional.',2],
+    frontPosition:['Step 3 of 4','Now face the camera','Show your shoulders and hips. Hold still when the status turns green.',3],
+    frontNeutral:['Step 3 of 4','Hold still','Neutral is locking automatically. Stand naturally for about 2 seconds.',3],
+    frontMove:['Step 4 of 4','Side-bend left and right','Do 3 comfortable bends each way, returning upright between bends.',4],
+    done:['Done','Profile ready','Your movement profile is ready.',4]
+  };
+  const v=map[s]||map.sidePosition;
+  $('#stepK').textContent=v[0];$('#title').textContent=v[1];$('#instruction').textContent=v[2];
+  for(let i=1;i<=4;i++)$('#p'+i).classList.toggle('on',i<=v[3]);
+  $('#neutralQ').textContent=(s.includes('Move')||s==='done')?'Locked':'Not set';
+}
+
+function torsoQuality(lm){
+  const ids=[P.ls,P.rs,P.lh,P.rh];
+  const vis=ids.reduce((a,i)=>a+(lm[i].visibility??1),0)/ids.length;
+  const inside=ids.every(i=>lm[i].x>.04&&lm[i].x<.96&&lm[i].y>.05&&lm[i].y<.96);
+  const sh=mid(lm[P.ls],lm[P.rs]), hp=mid(lm[P.lh],lm[P.rh]);
+  const torso=Math.hypot(sh.x-hp.x,sh.y-hp.y);
+  const largeEnough=torso>.12;
+  return {vis,inside,largeEnough,good:vis>.62&&inside&&largeEnough,sh,hp,torso};
+}
+function rawTrunk(lm){const sh=mid(lm[P.ls],lm[P.rs]),hp=mid(lm[P.lh],lm[P.rh]);return deg(Math.atan2(sh.x-hp.x,hp.y-sh.y))}
+function frontRaw(lm){return rawTrunk(lm)}
+
+function draw(lm){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const pts=lm.map(p=>({x:p.x*canvas.width,y:p.y*canvas.height}));
+  ctx.lineWidth=Math.max(3,canvas.width/360);ctx.strokeStyle='rgba(255,255,255,.92)';ctx.fillStyle='rgba(112,103,255,.98)';
+  [[11,12],[11,23],[12,24],[23,24]].forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(pts[a].x,pts[a].y);ctx.lineTo(pts[b].x,pts[b].y);ctx.stroke()});
+  [0,11,12,23,24].forEach(i=>{ctx.beginPath();ctx.arc(pts[i].x,pts[i].y,6,0,Math.PI*2);ctx.fill()});
+  const sh=mid(lm[11],lm[12]),hp=mid(lm[23],lm[24]);
+  ctx.strokeStyle='rgba(118,255,193,.95)';ctx.lineWidth=Math.max(4,canvas.width/300);ctx.beginPath();ctx.moveTo(sh.x*canvas.width,sh.y*canvas.height);ctx.lineTo(hp.x*canvas.width,hp.y*canvas.height);ctx.stroke();
+}
+function setQuality(q){
+  $('#poseQ').textContent=q.vis>.8?'Good':q.vis>.62?'OK':'Low';
+  $('#frameQ').textContent=q.good?'Good':'Adjust';
+  $('#dot').className='dot '+(q.good?'good':'');
+  $('#status').textContent=q.good?'Pose ready':'Move torso into frame';
+}
+
+function neutralReady(raw,lm,key){
+  neutralSamples.push(raw);
+  if(neutralSamples.length>40)neutralSamples.shift();
+  const spread=neutralSamples.length>10?Math.max(...neutralSamples)-Math.min(...neutralSamples):99;
+  const stable=neutralSamples.length>=18 && spread<3.5;
+  if(stable){
+    if(!stableSince)stableSince=performance.now();
+    if(performance.now()-stableSince>900){
+      const base=median(neutralSamples.slice(-25));
+      if(key==='side'){
+        baselineSide=base;
+        const hp=mid(lm[P.lh],lm[P.rh]);
+        facingSign=Math.sign((lm[P.nose]?.x??hp.x+.01)-hp.x)||1;
+      }else{
+        baselineFront=base;
+        leftSign=Math.sign(lm[P.ls].x-lm[P.rs].x)||1;
+      }
+      toast('Neutral locked');
+      return true;
+    }
+  }else stableSince=0;
+  $('#status').textContent=stable?'Hold still · locking neutral':'Stand naturally · hold still';
+  $('#dot').className='dot '+(stable?'good':'');
+  return false;
+}
+
+function updateSide(a,ts,q){
+  smooth=.76*smooth+.24*a;
+  const val=smooth;
+  $('#angle').textContent=Math.round(Math.abs(val));$('#sideAngle').textContent=Math.round(Math.abs(val));
+  sideSamples.push({t:ts,a:val,vis:q.vis});
+  animateSpine(clamp(val,-20,55),0);
+  let newPhase=Math.abs(val)<7?'neutral':val>15?'flexion':val<-7?'extension':phase;
+  if(phase==='flexion'&&newPhase==='neutral'){sideReps=Math.min(3,sideReps+1);$('#sideReps').textContent=sideReps;toast(`Forward bend ${sideReps} of 3`)}
+  phase=newPhase;
+  if(sideReps>=3){setState('frontPosition');toast('Great · now face the camera')}
+}
+function updateFront(a,ts,q){
+  smooth=.76*smooth+.24*a;
+  const val=smooth;
+  $('#angle').textContent=Math.round(Math.abs(val));$('#sideAngle').textContent=Math.round(Math.abs(val));
+  frontSamples.push({t:ts,a:val,vis:q.vis});
+  animateSpine(0,clamp(val,-35,35));
+  const newPhase=Math.abs(val)<7?'neutral':val>11?'left':val<-11?'right':phase;
+  if(phase==='left'&&newPhase==='neutral'&&leftReps<3){leftReps++;toast(`Left ${leftReps} of 3`)}
+  if(phase==='right'&&newPhase==='neutral'&&rightReps<3){rightReps++;toast(`Right ${rightReps} of 3`)}
+  phase=newPhase;$('#frontReps').textContent=leftReps+rightReps;
+  if(leftReps>=3&&rightReps>=3)finish();
+}
+
+function handle(lm,ts){
+  poseSeen=performance.now();draw(lm);
+  const q=torsoQuality(lm);setQuality(q);
+  if(!q.good)return;
+  const raw=rawTrunk(lm);
+
+  if(state==='sidePosition'){setState('sideNeutral');return}
+  if(state==='sideNeutral'){if(neutralReady(raw,lm,'side'))setState('sideMove');return}
+  if(state==='sideMove'){
+    const rel=(raw-baselineSide)*facingSign;
+    updateSide(rel,ts,q);return;
+  }
+  if(state==='frontPosition'){
+    setState('frontNeutral');return;
+  }
+  if(state==='frontNeutral'){if(neutralReady(frontRaw(lm),lm,'front'))setState('frontMove');return}
+  if(state==='frontMove'){
+    const rel=(frontRaw(lm)-baselineFront)*leftSign;
+    updateFront(rel,ts,q);return;
+  }
+}
+function stats(arr){if(arr.length<10)return null;const a=arr.map(x=>x.a);return{max:Math.max(...a),min:Math.min(...a),vis:arr.reduce((s,x)=>s+x.vis,0)/arr.length}}
+function finish(){
+  setState('done');
+  const s=stats(sideSamples),f=stats(frontSamples);
+  const flex=s?Math.max(0,s.max):0,ext=s?Math.max(0,-s.min):0,left=f?Math.max(0,f.max):0,right=f?Math.max(0,-f.min):0,asym=Math.abs(left-right);
+  latest={flexion:Math.round(flex),extension:Math.round(ext),left:Math.round(left),right:Math.round(right),asym:Math.round(asym)};
+  $('#rFlex').textContent=latest.flexion;$('#rExt').textContent=latest.extension;$('#rSide').textContent=`${latest.left}° / ${latest.right}°`;$('#rAsym').textContent=latest.asym;
+  $('#summary').textContent=`Observed trunk motion: flexion ${latest.flexion}°, extension ${latest.extension}°, side-bend left ${latest.left}° and right ${latest.right}°.`;
+  $('#interp').innerHTML=`<b>What this means:</b> this is a camera-based movement snapshot, useful as a baseline and for repeat testing under similar conditions. It is not a diagnosis and does not estimate individual vertebral motion, disc loading or pathology.${latest.asym>=8?` This session showed a side-to-side difference of about ${latest.asym}°. Repeat the test before interpreting that difference.`:''}`;
+  $('#results').classList.add('show');$('#results').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+async function loadPose(){
+  $('#status').textContent='Loading pose model…';
+  const vision=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs');
+  const fileset=await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm');
+  const options={
+    baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task',delegate:'GPU'},
+    runningMode:'VIDEO',numPoses:1,minPoseDetectionConfidence:.5,minPosePresenceConfidence:.5,minTrackingConfidence:.5,outputSegmentationMasks:false
+  };
+  try{landmarker=await vision.PoseLandmarker.createFromOptions(fileset,options)}
+  catch(e){console.warn('GPU init failed, using CPU',e);options.baseOptions.delegate='CPU';landmarker=await vision.PoseLandmarker.createFromOptions(fileset,options)}
+}
+async function startCamera(){
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1280},height:{ideal:720}},audio:false});
+  video.srcObject=stream;await video.play();
+  canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+  const mirror=facing==='user';video.classList.toggle('mirror',mirror);canvas.classList.toggle('mirror',mirror);
+}
+function loop(){
+  if(video.readyState>=2&&landmarker&&video.currentTime!==lastVideoTime){
+    lastVideoTime=video.currentTime;
+    try{
+      const now=performance.now(),r=landmarker.detectForVideo(video,now);
+      if(r.landmarks?.[0])handle(r.landmarks[0],now);
+      else if(now-poseSeen>500){ctx.clearRect(0,0,canvas.width,canvas.height);$('#status').textContent='No pose detected · show shoulders and hips';$('#dot').className='dot'}
+    }catch(e){console.error(e);$('#status').textContent='Pose inference error';$('#dot').className='dot bad'}
+  }
+  raf=requestAnimationFrame(loop);
+}
+function reset(){
+  sideSamples=[];frontSamples=[];baselineSide=null;baselineFront=null;sideReps=leftReps=rightReps=0;$('#sideReps').textContent='0';$('#frontReps').textContent='0';$('#angle').textContent='0';$('#sideAngle').textContent='0';$('#results').classList.remove('show');setState('sidePosition');
+}
+$('#startBtn').onclick=async()=>{
+  $('#workspace').classList.add('show');$('#workspace').scrollIntoView({behavior:'smooth'});
+  try{if(!landmarker)await loadPose();await startCamera();reset();cancelAnimationFrame(raf);loop()}
+  catch(e){console.error(e);$('#status').textContent='Camera / pose could not start';$('#dot').className='dot bad';toast('Use HTTPS and allow camera access')}
+};
+$('#flipBtn').onclick=async()=>{facing=facing==='user'?'environment':'user';try{await startCamera();reset()}catch(e){console.error(e)}};
+$('#restartBtn').onclick=reset;
+$('#againBtn').onclick=()=>{$('#results').classList.remove('show');reset();$('#workspace').scrollIntoView({behavior:'smooth'})};
+$('#copyBtn').onclick=async()=>{if(!latest)return;const t=`PoseIQ Spine Motion Profile\nFlexion: ${latest.flexion}°\nExtension: ${latest.extension}°\nSide bend: L ${latest.left}° / R ${latest.right}°\nSide difference: ${latest.asym}°\n\nCamera-based observable trunk movement. Not a diagnosis.`;try{await navigator.clipboard.writeText(t);toast('Summary copied')}catch(e){toast('Copy unavailable')}};
+setState('sidePosition');
+let idle=0;(function idleLoop(){if(state==='idle'||!stream){idle+=.015;animateSpine(Math.sin(idle)*2,Math.sin(idle*.8)*1.5)}requestAnimationFrame(idleLoop)})();
+</script>
+</body>
+</html>

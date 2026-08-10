@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>PoseIQ Spine — Your movement. Your spine model.</title>
+  <meta name="theme-color" content="#ffffff" />
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --card: #ffffff;
+      --ink: #101114;
+      --muted: #70757d;
+      --line: #e7e9ee;
+      --accent: #101114;
+      --soft: #eef1f5;
+      --good: #15803d;
+      --warn: #a16207;
+      --est: #6d28d9;
+      --shadow: 0 16px 50px rgba(20, 24, 32, .08);
+      --r: 24px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body { min-height: 100vh; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .app { max-width: 1440px; margin: 0 auto; padding: 18px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -.03em; }
+    .dot { width: 12px; height: 12px; border-radius: 999px; background: #111; }
+    .brand small { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .02em; }
+    .topactions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn { border: 1px solid var(--line); background: var(--card); padding: 10px 14px; border-radius: 999px; font-weight: 700; box-shadow: 0 1px 0 rgba(0,0,0,.02); transition: all 0.2s ease; }
+    .btn:hover { background: #f0f2f5; }
+    .btn.primary { background: #111; color: #fff; border-color: #111; }
+    .btn.primary:hover { background: #222; }
+    .btn.ghost { background: transparent; }
+    
+    .modeToggle { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--soft); padding: 4px; border-radius: 12px; margin-bottom: 14px; }
+    .modeToggle .btn { border: none; padding: 8px 10px; font-size: 12px; border-radius: 8px; box-shadow: none; text-align: center; background: transparent; color: var(--muted); }
+    .modeToggle .btn.active { background: #fff; color: var(--ink); font-weight: 850; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+
+    .hero { display: grid; grid-template-columns: 1.55fr .85fr; gap: 18px; }
+    .stage, .panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; }
+    .stage { position: relative; min-height: 690px; background: radial-gradient(circle at 50% 42%, #fff 0, #f7f8fa 55%, #eef1f5 100%); }
+    .stageHeader { position: absolute; z-index: 8; top: 18px; left: 18px; right: 18px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; }
+    .headline { max-width: 620px; }
+    .eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    h1 { font-size: clamp(30px, 4vw, 54px); line-height: .98; letter-spacing: -.055em; margin: 0; }
+    .sub { font-size: 14px; color: var(--muted); margin-top: 12px; max-width: 520px; line-height: 1.5; }
+    .status { pointer-events: auto; background: rgba(255, 255, 255, .86); backdrop-filter: blur(10px); border: 1px solid rgba(0, 0, 0, .07); padding: 8px 11px; border-radius: 999px; font-size: 12px; font-weight: 800; display: flex; align-items: center; gap: 7px; }
+    .status i { width: 8px; height: 8px; background: #aaa; border-radius: 50%; display: inline-block; }
+    .status.live i { background: #16a34a; box-shadow: 0 0 0 5px rgba(22, 163, 74, .12); }
+    #three { position: absolute; inset: 0; z-index: 3; pointer-events: auto; }
+    #three canvas { display: block; width: 100%; height: 100%; }
+    .cameraWrap { position: absolute; inset: 0; background: #0f1115; overflow: hidden; display: none; z-index: 1; }
+    .cameraWrap.show { display: block; }
+    .cameraWrap::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,.28), transparent 24%, transparent 74%, rgba(0,0,0,.20)); }
+    video, canvas.overlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    video { transform: scaleX(-1); filter: saturate(.88) contrast(1.03) brightness(.92); }
+    canvas.overlay { z-index: 3; pointer-events: none; }
+    .camLabel { position: absolute; z-index: 5; right: 18px; bottom: 18px; color: #fff; background: rgba(0,0,0,.44); backdrop-filter: blur(10px); padding: 7px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; }
+    .snapHint { position: absolute; z-index: 7; left: 18px; bottom: 20px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip { background: rgba(255, 255, 255, .9); backdrop-filter: blur(12px); border: 1px solid rgba(0,0,0,.08); padding: 8px 11px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .panel { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+    .panel h2 { margin: 0; font-size: 19px; letter-spacing: -.03em; }
+    .panel p { margin: 4px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .section { border: 1px solid var(--line); border-radius: 18px; padding: 14px; background: #fff; }
+    .sectionTitle { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; font-weight: 850; }
+    .range { display: grid; grid-template-columns: 1fr 62px; gap: 10px; align-items: center; margin: 12px 0; }
+    .range label { font-size: 13px; color: #31343a; font-weight: 700; }
+    .range input[type=range] { width: 100%; accent-color: #111; }
+    .range .v { font-variant-numeric: tabular-nums; text-align: right; font-size: 12px; color: var(--muted); }
+    .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .metric { border: 1px solid var(--line); border-radius: 16px; padding: 12px; background: #fafbfc; }
+    .metric .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-weight: 850; }
+    .metric .n { font-size: 24px; font-weight: 850; letter-spacing: -.04em; margin-top: 4px; }
+    .metric .tag { margin-top: 5px; font-size: 10px; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
+    .measured { color: var(--good); } .modeled { color: var(--warn); } .estimated { color: var(--est); }
+    .legend { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .legend span { font-size: 10px; font-weight: 850; padding: 5px 7px; border-radius: 999px; background: var(--soft); }
+    .actionRow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .note { font-size: 11px; color: var(--muted); line-height: 1.45; background: #f7f8fa; border-radius: 14px; padding: 11px; border: 1px solid var(--line); }
+    .footer { margin: 16px 2px 4px; color: var(--muted); font-size: 11px; text-align: center; }
+    @media(max-width:980px) {
+      .hero { grid-template-columns: 1fr; } .stage { min-height: 560px; } .panel { box-shadow: none; }
+    }
+    @media(max-width:620px) {
+      .app { padding: 10px; } .topbar { margin-bottom: 10px; } .topactions .btn:not(.primary) { display: none; } .stage { min-height: 500px; border-radius: 20px; }
+      .stageHeader { top: 14px; left: 14px; right: 14px; } .sub { font-size: 13px; }
+      .snapHint { left: 12px; bottom: 12px; right: 50%; } .chip { font-size: 10px; padding: 7px 9px; } .panel { border-radius: 20px; padding: 12px; } .metrics { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span> PoseIQ <small>SPINE / MVP 0.1</small></div>
+    <div class="topactions">
+      <button class="btn ghost" id="resetBtn">Reset model</button>
+      <button class="btn primary" id="cameraBtn">Turn camera on</button>
+    </div>
+  </div>
+
+  <main class="hero">
+    <section class="stage">
+      <div class="stageHeader">
+        <div class="headline">
+          <div class="eyebrow">Digital spine lab</div>
+          <h1>Your movement.<br>Your spine model.</h1>
+          <div class="sub">Explore the spine in 3D. Turn on your camera and the live person, tracked landmarks, and fitted spine share one stage. Snap the model into your body, then move.</div>
+        </div>
+        <div class="status" id="trackingStatus"><i></i><span>Explore mode</span></div>
+      </div>
+      <div id="three"></div>
+
+      <div class="cameraWrap" id="cameraWrap">
+        <div class="camLabel">LIVE BODY + 3D SPINE</div>
+        <video id="video" autoplay playsinline muted></video>
+        <canvas class="overlay" id="overlay"></canvas>
+      </div>
+
+      <div class="snapHint">
+        <span class="chip">Drag to rotate</span>
+        <span class="chip">Scroll to zoom</span>
+        <span class="chip" id="snapChip">Camera off</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div>
+        <h2>Make it mine</h2>
+        <p>Adjust the visible model. PoseIQ separates what the camera measures from what the model represents.</p>
+      </div>
+
+      <div class="section">
+        <div class="sectionTitle"><span>Bending Articulation</span><span style="color:var(--muted);font-size:11px">MODE</span></div>
+        <div class="modeToggle">
+          <button class="btn active" id="btnModeSegmented">Realistic (Segmented)</button>
+          <button class="btn" id="btnModeRigid">Rigid</button>
+        </div>
+
+        <div class="sectionTitle"><span>Model fit</span><span style="color:var(--muted);font-size:11px">LIVE</span></div>
+        <div class="range"><div><label>Lumbar curve</label><input id="lumbar" type="range" min="-25" max="35" value="12"></div><div class="v" id="lumbarV">12°</div></div>
+        <div class="range"><div><label>Thoracic curve</label><input id="thoracic" type="range" min="0" max="50" value="22"></div><div class="v" id="thoracicV">22°</div></div>
+        <div class="range"><div><label>Pelvic tilt</label><input id="pelvis" type="range" min="-25" max="25" value="3"></div><div class="v" id="pelvisV">3°</div></div>
+        <div class="range"><div><label>Trunk lean</label><input id="lean" type="range" min="-30" max="30" value="0"></div><div class="v" id="leanV">0°</div></div>
+        <div class="range"><div><label>Body scale</label><input id="scale" type="range" min="80" max="120" value="100"></div><div class="v" id="scaleV">100%</div></div>
+        <div class="actionRow">
+          <button class="btn" id="autoFitBtn">Auto-fit visible posture</button>
+          <button class="btn" id="snapBtn">Snap to person</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="sectionTitle"><span>Spine profile</span><span style="color:var(--muted);font-size:11px">NOW</span></div>
+        <div class="metrics">
+          <div class="metric"><div class="k">Trunk lean</div><div class="n" id="mLean">0°</div><div class="tag measured">Measured</div></div>
+          <div class="metric"><div class="k">Shoulder tilt</div><div class="n" id="mShoulder">0°</div><div class="tag measured">Measured</div></div>
+          <div class="metric"><div class="k">Lumbar curve</div><div class="n" id="mLumbar">12°</div><div class="tag modeled">Modeled</div></div>
+          <div class="metric"><div class="k">Pelvic tilt</div><div class="n" id="mPelvis">3°</div><div class="tag modeled">Modeled</div></div>
+        </div>
+        <div class="legend"><span class="measured">● Measured</span><span class="modeled">● Modeled</span><span class="estimated">● Estimated</span></div>
+      </div>
+
+      <div class="section">
+        <div class="sectionTitle"><span>Movement</span><span style="color:var(--muted);font-size:11px">PREVIEW</span></div>
+        <div class="metrics">
+          <div class="metric"><div class="k">Flexion ROM</div><div class="n" id="rom">0°</div><div class="tag measured">Measured</div></div>
+          <div class="metric"><div class="k">Smoothness</div><div class="n" id="smooth">—</div><div class="tag estimated">Estimated</div></div>
+        </div>
+      </div>
+
+      <div class="note"><strong>Scientific boundary:</strong> the fitted 3D spine is a model constrained by visible posture. It is not a direct measurement of individual vertebrae, discs, facet loads, or internal spinal geometry.</div>
+    </aside>
+  </main>
+  <div class="footer">PoseIQ™ Spine MVP · local browser demo · no video uploaded</div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.161/build/three.module.js"
+  }
+}
+</script>
+<script type="module">
+  import * as THREE from 'three';
+  import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.161/examples/jsm/controls/OrbitControls.js';
+  import { FilesetResolver, PoseLandmarker } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm';
+
+  const host = document.getElementById('three');
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(host.clientWidth, host.clientHeight);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.setClearColor(0x000000, 0);
+  renderer.shadowMap.enabled = true;
+  host.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const camera3 = new THREE.PerspectiveCamera(35, host.clientWidth / host.clientHeight, 0.1, 100);
+  camera3.position.set(0, 0.2, 5.2);
+
+  const controls = new OrbitControls(camera3, renderer.domElement);
+  controls.enableDamping = true;
+  controls.target.set(0, -0.2, 0);
+  controls.minDistance = 2.5;
+  controls.maxDistance = 8;
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xb7bcc5, 2.4));
+  const dir = new THREE.DirectionalLight(0xffffff, 3);
+  dir.position.set(4, 8, 5);
+  dir.castShadow = true;
+  scene.add(dir);
+
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(2.0, 64), new THREE.MeshStandardMaterial({ color: 0xf1f3f6, roughness: 1 }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -1.6;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  const root = new THREE.Group();
+  root.scale.setScalar(0.68);
+  scene.add(root);
+
+  const spineGroup = new THREE.Group(); root.add(spineGroup);
+  const pelvisGroup = new THREE.Group(); root.add(pelvisGroup);
+
+  function capsuleMesh(r = 0.12, h = 0.08, color = 0xf4eee8) {
+    const g = new THREE.CapsuleGeometry(r, h, 8, 16);
+    const m = new THREE.MeshStandardMaterial({ color, roughness: .50, metalness: .02, emissive: 0x1a120d, emissiveIntensity: .08 });
+    const mesh = new THREE.Mesh(g, m);
+    mesh.castShadow = true;
+    return mesh;
+  }
+
+  const vertebrae = [];
+  for (let i = 0; i < 24; i++) {
+    const v = capsuleMesh(i < 5 ? .14 : .11, i < 5 ? .08 : .06, i < 5 ? 0xe8d6c9 : 0xf1e6dd);
+    v.rotation.z = Math.PI / 2;
+    spineGroup.add(v);
+    vertebrae.push(v);
+  }
+
+  // Sacrum
+  const sacrum = new THREE.Mesh(new THREE.ConeGeometry(.24, .42, 5), new THREE.MeshStandardMaterial({ color: 0xe1c8b7, roughness: .6 }));
+  sacrum.rotation.z = Math.PI;
+  sacrum.position.y = -1.05;
+  sacrum.castShadow = true;
+  spineGroup.add(sacrum);
+
+  // Pelvis bones stylised
+  const pelvisMat = new THREE.MeshStandardMaterial({ color: 0xd8c0ae, roughness: .6, transparent: true, opacity: .92 });
+  [-1, 1].forEach(s => {
+    const p = new THREE.Mesh(new THREE.SphereGeometry(.45, 32, 24), pelvisMat);
+    p.scale.set(.78, .62, .45);
+    p.position.set(.32 * s, -1.15, 0);
+    p.castShadow = true;
+    pelvisGroup.add(p);
+  });
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(.40, .07, 16, 48), pelvisMat);
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = -1.2;
+  pelvisGroup.add(ring);
+
+  // Rib hint
+  const ribs = new THREE.Group(); root.add(ribs);
+  for (let i = 0; i < 5; i++) {
+    const tor = new THREE.Mesh(new THREE.TorusGeometry(.36 + i * .035, .012, 8, 48, Math.PI * 1.55), new THREE.MeshStandardMaterial({ color: 0xcfd3da, transparent: true, opacity: .35 }));
+    tor.rotation.y = Math.PI / 2;
+    tor.position.y = .08 + i * .21;
+    tor.position.z = -.01;
+    ribs.add(tor);
+  }
+
+  const lumbar = document.getElementById('lumbar'), thoracic = document.getElementById('thoracic'), pelvis = document.getElementById('pelvis'), lean = document.getElementById('lean'), scale = document.getElementById('scale');
+  let snapped = false;
+  let isSegmentedMode = true;
+
+  function d2r(d) { return d * Math.PI / 180; }
+
+  const btnSegmented = document.getElementById('btnModeSegmented');
+  const btnRigid = document.getElementById('btnModeRigid');
+
+  btnSegmented.addEventListener('click', () => {
+    isSegmentedMode = true;
+    btnSegmented.classList.add('active');
+    btnRigid.classList.remove('active');
+    updateModel();
+  });
+
+  btnRigid.addEventListener('click', () => {
+    isSegmentedMode = false;
+    btnRigid.classList.add('active');
+    btnSegmented.classList.remove('active');
+    updateModel();
+  });
+
+  function updateModel() {
+    const L = +lumbar.value, T = +thoracic.value, P = +pelvis.value, N = +lean.value, S = (+scale.value / 100) * 0.68;
+    if (!snapped) root.scale.setScalar(S);
+
+    pelvisGroup.rotation.z = d2r(-P);
+    sacrum.rotation.x = d2r(P * .3);
+
+    if (isSegmentedMode) {
+      // REALISTIC SEGMENTED BENDING MODE
+      root.rotation.z = 0;
+
+      let currentX = 0;
+      let currentY = -0.92;
+      let accumulatedRot = 0;
+      const segSpacing = 0.092;
+
+      vertebrae.forEach((v, i) => {
+        const t = i / 23;
+        const lumbarWeight = Math.max(0, 1 - Math.abs((t - .16) / .26));
+        const thorWeight = Math.max(0, 1 - Math.abs((t - .66) / .45));
+
+        // Inverted directional sign (-N) so segmented articulation moves in precise sync with rigid mode & lean slider
+        const segBend = (-d2r(N) / 24) * (1.0 + lumbarWeight * 0.5 + thorWeight * 0.3);
+        accumulatedRot += segBend;
+
+        const curveOffsetX = (Math.sin(t * Math.PI) * 0.03) + d2r(L) * lumbarWeight * .35 - d2r(T) * thorWeight * .28;
+
+        v.position.set(currentX + curveOffsetX, currentY, 0);
+        v.rotation.set(0, 0, Math.PI / 2 + accumulatedRot + d2r((L * lumbarWeight - T * thorWeight) * .42));
+
+        currentX += Math.sin(accumulatedRot) * segSpacing;
+        currentY += Math.cos(accumulatedRot) * segSpacing;
+
+        const s = .86 + t * .16;
+        v.scale.setScalar(s);
+      });
+
+      ribs.position.set(currentX * 0.6, currentY * 0.5 - 0.2, 0);
+      ribs.rotation.z = accumulatedRot * 0.65;
+
+    } else {
+      // RIGID BODY MODE
+      root.rotation.z = d2r(N * .85);
+
+      vertebrae.forEach((v, i) => {
+        const y = -0.9 + i * .092;
+        const t = i / 23;
+        const lumbarWeight = Math.max(0, 1 - Math.abs((t - .16) / .26));
+        const thorWeight = Math.max(0, 1 - Math.abs((t - .66) / .45));
+        const x = (Math.sin(t * Math.PI) * 0.03) + d2r(L) * lumbarWeight * .35 - d2r(T) * thorWeight * .28;
+
+        v.position.set(x, y, 0);
+        v.rotation.set(0, 0, Math.PI / 2 + d2r((L * lumbarWeight - T * thorWeight) * .42));
+        const s = .86 + t * .16;
+        v.scale.setScalar(s);
+      });
+
+      ribs.position.set(0, 0, 0);
+      ribs.rotation.z = d2r(-T * .18);
+    }
+
+    ['lumbar', 'thoracic', 'pelvis', 'lean'].forEach(id => document.getElementById(id + 'V').textContent = document.getElementById(id).value + '°');
+    document.getElementById('scaleV').textContent = scale.value + '%';
+    document.getElementById('mLumbar').textContent = L + '°';
+    document.getElementById('mPelvis').textContent = P + '°';
+  }
+
+  [lumbar, thoracic, pelvis, lean, scale].forEach(el => el.addEventListener('input', updateModel));
+  updateModel();
+
+  function resize() {
+    const w = host.clientWidth, h = host.clientHeight;
+    renderer.setSize(w, h);
+    camera3.aspect = w / h;
+    camera3.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+
+  (function loop() {
+    requestAnimationFrame(loop);
+    controls.update();
+    renderer.render(scene, camera3);
+  })();
+
+  // Camera + MediaPipe
+  const video = document.getElementById('video'), overlay = document.getElementById('overlay'), ctx = overlay.getContext('2d');
+  const cameraWrap = document.getElementById('cameraWrap'), cameraBtn = document.getElementById('cameraBtn'), snapChip = document.getElementById('snapChip'), status = document.getElementById('trackingStatus');
+  let stream = null, landmarker = null, running = false, lastLean = 0, minLean = 999, maxLean = -999, leanHistory = [];
+
+  async function ensurePose() {
+    if (landmarker) return;
+    status.querySelector('span').textContent = 'Loading pose AI…';
+    const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+    landmarker = await PoseLandmarker.createFromOptions(vision, {
+      baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task', delegate: 'GPU' },
+      runningMode: 'VIDEO', numPoses: 1, minPoseDetectionConfidence: .5, minTrackingConfidence: .5
+    });
+  }
+
+  async function toggleCamera() {
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
+      running = false;
+      cameraWrap.classList.remove('show');
+      cameraBtn.textContent = 'Turn camera on';
+      snapChip.textContent = 'Camera off';
+      status.classList.remove('live');
+      status.querySelector('span').textContent = 'Explore mode';
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+      snapped = false;
+      document.getElementById('snapBtn').textContent = 'Snap to person';
+      root.position.set(0, 0, 0);
+      updateModel();
+      return;
+    }
+    try {
+      await ensurePose();
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 960 } }, audio: false });
+      video.srcObject = stream;
+      await video.play();
+      cameraWrap.classList.add('show');
+      cameraBtn.textContent = 'Camera off';
+      snapChip.textContent = 'Person + spine, one stage';
+      status.classList.add('live');
+      status.querySelector('span').textContent = 'Tracking';
+      running = true;
+      predict();
+    } catch (e) {
+      alert('Camera could not start. Use HTTPS or localhost and allow camera access.\n\n' + e.message);
+    }
+  }
+  cameraBtn.addEventListener('click', toggleCamera);
+
+  const EDGES = [[11, 12], [11, 23], [12, 24], [23, 24], [11, 13], [13, 15], [12, 14], [14, 16], [23, 25], [25, 27], [24, 26], [26, 28]];
+
+  function drawPose(lm) {
+    overlay.width = video.videoWidth || 480;
+    overlay.height = video.videoHeight || 640;
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(255,255,255,.84)';
+    ctx.fillStyle = '#fff';
+
+    EDGES.forEach(([a, b]) => {
+      const A = lm[a], B = lm[b];
+      ctx.beginPath();
+      ctx.moveTo((1 - A.x) * overlay.width, A.y * overlay.height);
+      ctx.lineTo((1 - B.x) * overlay.width, B.y * overlay.height);
+      ctx.stroke();
+    });
+
+    [11, 12, 23, 24].forEach(i => {
+      ctx.beginPath();
+      ctx.arc((1 - lm[i].x) * overlay.width, lm[i].y * overlay.height, 5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  function deg(a) { return a * 180 / Math.PI; }
+
+  function screenToWorld(x, y) {
+    const fovRad = d2r(camera3.fov);
+    const planeHeight = 2 * Math.tan(fovRad / 2) * camera3.position.z;
+    const planeWidth = planeHeight * camera3.aspect;
+
+    const worldX = (x - 0.5) * planeWidth;
+    const worldY = (0.5 - y) * planeHeight;
+    return new THREE.Vector3(worldX, worldY, 0);
+  }
+
+  function alignModelToBody(lm) {
+    if (!snapped) return;
+
+    const videoAspect = (video.videoWidth || 640) / (video.videoHeight || 480);
+    const canvasAspect = host.clientWidth / host.clientHeight;
+
+    let scaleX = 1, scaleY = 1;
+    if (videoAspect > canvasAspect) {
+      scaleX = videoAspect / canvasAspect;
+    } else {
+      scaleY = canvasAspect / videoAspect;
+    }
+
+    const normX = (x) => ((x - 0.5) * scaleX) + 0.5;
+    const normY = (y) => ((y - 0.5) * scaleY) + 0.5;
+
+    const sh = { x: 1 - (normX(lm[11].x) + normX(lm[12].x)) / 2, y: (normY(lm[11].y) + normY(lm[12].y)) / 2 };
+    const hp = { x: 1 - (normX(lm[23].x) + normX(lm[24].x)) / 2, y: (normY(lm[23].y) + normY(lm[24].y)) / 2 };
+    const mid = { x: (sh.x + hp.x) / 2, y: (sh.y + hp.y) / 2 };
+
+    const world = screenToWorld(mid.x, mid.y);
+
+    root.position.lerp(new THREE.Vector3(world.x, world.y - 0.1, 0), 0.22);
+
+    const trunkLen = Math.hypot(sh.x - hp.x, sh.y - hp.y);
+    const visualScale = Math.max(0.45, Math.min(1.15, trunkLen * 1.85));
+    const userScale = (+scale.value / 100) * 0.68 * visualScale;
+    root.scale.lerp(new THREE.Vector3(userScale, userScale, userScale), 0.18);
+  }
+
+  function calcPose(lm) {
+    const sh = { x: (lm[11].x + lm[12].x) / 2, y: (lm[11].y + lm[12].y) / 2 };
+    const hp = { x: (lm[23].x + lm[24].x) / 2, y: (lm[23].y + lm[24].y) / 2 };
+    const dx = sh.x - hp.x, dy = hp.y - sh.y;
+
+    const trunk = deg(Math.atan2(dx, dy));
+
+    const shoulder = deg(Math.atan2(lm[12].y - lm[11].y, lm[12].x - lm[11].x));
+    const shoulderTilt = Math.abs(Math.abs(shoulder) - 180) < 90 ? shoulder : shoulder > 90 ? shoulder - 180 : shoulder < -90 ? shoulder + 180 : shoulder;
+
+    lastLean = trunk;
+    minLean = Math.min(minLean, trunk);
+    maxLean = Math.max(maxLean, trunk);
+    leanHistory.push(trunk);
+    if (leanHistory.length > 45) leanHistory.shift();
+
+    document.getElementById('mLean').textContent = trunk.toFixed(1) + '°';
+    document.getElementById('mShoulder').textContent = shoulderTilt.toFixed(1) + '°';
+    document.getElementById('rom').textContent = (maxLean - minLean).toFixed(1) + '°';
+
+    if (leanHistory.length > 10) {
+      let jerk = 0;
+      for (let i = 2; i < leanHistory.length; i++) {
+        jerk += Math.abs((leanHistory[i] - leanHistory[i - 1]) - (leanHistory[i - 1] - leanHistory[i - 2]));
+      }
+      let score = Math.max(0, 100 - jerk * 2.4);
+      document.getElementById('smooth').textContent = Math.round(score);
+    }
+
+    if (snapped) {
+      lean.value = Math.max(-30, Math.min(30, Math.round(trunk)));
+      updateModel();
+      alignModelToBody(lm);
+    }
+  }
+
+  async function predict() {
+    if (!running) return;
+    if (video.readyState >= 2) {
+      const res = landmarker.detectForVideo(video, performance.now());
+      if (res.landmarks?.[0]) {
+        drawPose(res.landmarks[0]);
+        calcPose(res.landmarks[0]);
+        status.querySelector('span').textContent = 'Tracking';
+      } else {
+        status.querySelector('span').textContent = 'Find your body';
+      }
+    }
+    requestAnimationFrame(predict);
+  }
+
+  document.getElementById('snapBtn').addEventListener('click', () => {
+    if (!stream) { alert('Turn the camera on first.'); return; }
+    snapped = !snapped;
+    document.getElementById('snapBtn').textContent = snapped ? 'Unsnap model' : 'Snap to person';
+    snapChip.textContent = snapped ? '3D spine aligned inside you' : 'Camera linked';
+    if (snapped) {
+      camera3.position.set(0, 0, 5.2);
+      controls.target.set(0, 0, 0);
+      controls.update();
+    } else {
+      root.position.set(0, 0, 0);
+      updateModel();
+    }
+  });
+
+  document.getElementById('autoFitBtn').addEventListener('click', () => {
+    if (!stream) { alert('Turn the camera on first.'); return; }
+    lean.value = Math.max(-30, Math.min(30, Math.round(lastLean)));
+    pelvis.value = Math.max(-12, Math.min(12, Math.round(lastLean * .22)));
+    lumbar.value = Math.max(-15, Math.min(28, Math.round(12 - lastLean * .18)));
+    thoracic.value = Math.max(8, Math.min(42, Math.round(22 + Math.abs(lastLean) * .12)));
+    updateModel();
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    lumbar.value = 12; thoracic.value = 22; pelvis.value = 3; lean.value = 0; scale.value = 100;
+    minLean = 999; maxLean = -999; leanHistory = [];
+    snapped = false;
+    document.getElementById('snapBtn').textContent = 'Snap to person';
+    root.position.set(0, 0, 0);
+    camera3.position.set(0, 0.2, 5.2);
+    controls.target.set(0, -0.2, 0);
+    controls.update();
+    updateModel();
+    document.getElementById('rom').textContent = '0°';
+    document.getElementById('smooth').textContent = '—';
+  });
+</script>
+</body>
+</html>
