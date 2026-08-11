@@ -37,8 +37,6 @@ button:focus-visible{outline:3px solid rgba(141,132,255,.65);outline-offset:3px}
   linear-gradient(180deg,#11151d 0%,#07090c 68%)}
 video,canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 video.mirror,canvas.mirror{transform:scaleX(-1)}
-#welcomeBg{z-index:0;opacity:.42;filter:brightness(.62) saturate(.9);transition:opacity .35s ease}
-.app[data-running="true"] #welcomeBg{opacity:0}
 #video{opacity:0;transition:opacity .35s ease}
 .app[data-running="true"] #video{opacity:1}
 #overlay{pointer-events:none}
@@ -154,9 +152,6 @@ video.mirror,canvas.mirror{transform:scaleX(-1)}
 <body>
 <main class="app" id="app" data-running="false">
   <section class="stage" aria-label="PoseIQ Spine camera workspace">
-    <video id="welcomeBg" autoplay muted loop playsinline preload="auto" aria-hidden="true">
-      <source src="spinePoseIQ.mp4" type="video/mp4">
-    </video>
     <video id="video" class="mirror" playsinline muted></video>
     <canvas id="overlay" class="mirror"></canvas>
     <div class="vignette"></div>
